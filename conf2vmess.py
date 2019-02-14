@@ -4,8 +4,9 @@ import json
 import argparse
 import urllib.request
 import warnings
+import os
 
-VMESS_TEMPLATE = {
+V2RAYN_TEMPLATE = {
     'v': '2',
     'ps': '',
     'add': '',
@@ -18,9 +19,10 @@ VMESS_TEMPLATE = {
     'path': '/',
     'tls': 'none'
 }
+# Follow v2rayN format: https://github.com/2dust/v2rayN/wiki/%E5%88%86%E4%BA%AB%E9%93%BE%E6%8E%A5%E6%A0%BC%E5%BC%8F%E8%AF%B4%E6%98%8E(ver-2)
 
 
-def generate_vmess_config(ARGS, VMESS_TEMPLATE):
+def generate_vmess_config(ARGS, V2RAYN_TEMPLATE):
     with open(ARGS.config, 'r') as f:
         config = json.load(f)
     config = config['inbounds']
@@ -41,7 +43,7 @@ def generate_vmess_config(ARGS, VMESS_TEMPLATE):
             else:
                 clientPort = ARGS.port * numClient
 
-            LOCAL_TEMPLATE = VMESS_TEMPLATE.copy()
+            LOCAL_TEMPLATE = V2RAYN_TEMPLATE.copy()
             LOCAL_TEMPLATE['add'] = ARGS.server
             if 'network' in iconfig['streamSettings'].keys():
                 LOCAL_TEMPLATE['net'] = iconfig['streamSettings']['network']
@@ -106,7 +108,8 @@ def generate_vmess_config(ARGS, VMESS_TEMPLATE):
     return configOut
 
 if __name__ == '__main__':
-    publicIP = json.load(urllib.request.urlopen('http://jsonip.com'))['ip']
+    data= urllib.request.urlopen('http://jsonip.com').readall().decode()
+    publicIP = json.loads(data)['ip']
 
     parser = argparse.ArgumentParser(description="""Script to generate v2rayN format configuration file based on
     https://github.com/2dust/v2rayN/wiki/%E5%88%86%E4%BA%AB%E9%93%BE%E6%8E%A5%E6%A0%BC%E5%BC%8F%E8%AF%B4%E6%98%8E(ver-2)""")
@@ -115,11 +118,17 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--server', default=publicIP, help='domain or IP address of v2ray server (default: IP of current host %(default)s)')
     parser.add_argument('-p', '--port', nargs='+', type=int, default=[80], help='ports that v2ray server listens to (default: the ones defined in configuration file)')
     parser.add_argument('-o', '--output', default='STDOUT', help='name of v2rayN format configuration file (default: %(default)s)')
+    parser.add_argument('-a', '--append', action='store_true', help='append to output file (default: False)')
 
     ARGS = parser.parse_args()
-    config = generate_vmess_config(ARGS, VMESS_TEMPLATE)
+    config = generate_vmess_config(ARGS, V2RAYN_TEMPLATE)
     if ARGS.output == 'STDOUT':
         print(json.dumps(config, indent=4, ensure_ascii=False))
     else:
+        if ARGS.append:
+            if os.path.isfile(ARGS.output):
+                with open(ARGS.output, 'r') as f:
+                    configOld = json.load(f)
+                config = configOld + config
         with open(ARGS.output, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=4, ensure_ascii=False)
