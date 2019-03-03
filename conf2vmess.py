@@ -108,7 +108,7 @@ def generate_vmess_config(ARGS, V2RAYN_TEMPLATE):
     return configOut
 
 if __name__ == '__main__':
-    data= urllib.request.urlopen('http://jsonip.com').readall().decode()
+    data= urllib.request.urlopen('http://jsonip.com').read().decode()
     publicIP = json.loads(data)['ip']
 
     parser = argparse.ArgumentParser(description="""Script to generate v2rayN format configuration file based on
